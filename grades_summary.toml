@@ -599,3 +599,8 @@ course_name = "写作与沟通"
 grade = "平时 15% + 短文 30% + 长文 40% + 口头报告 15%"
 [grades.WRIT0001.default.default]
 grade = "各小班成绩构成可能不同，通常包含平时表现、短文、长文和口头汇报。"
+
+[grades.SPST1004]
+course_name = "普通天文学"
+[grades.SPST1004.default.default]
+grade = "考勤 20% + 作业 30% + 期末考试 50%"
