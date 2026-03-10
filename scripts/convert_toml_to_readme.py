@@ -564,7 +564,7 @@ def render_multi_project(data: dict, *, grades_summary: dict | None = None) -> s
         teacher_lines = _render_teachers_with_reviews(c.get("teachers"))
         if teacher_lines:
             lines.append("")
-            lines.append(f"### {header} - 授课教师")
+            lines.append("### 授课教师")
             lines.append("")
             lines.extend(teacher_lines)
 
@@ -575,7 +575,7 @@ def render_multi_project(data: dict, *, grades_summary: dict | None = None) -> s
                 continue
 
             lines.append("")
-            lines.append(f"### {header} - {stitle}")
+            lines.append(f"### {stitle}")
             for it in items:
                 content = it["content"]
                 author = it["author"]
@@ -597,7 +597,7 @@ def render_multi_project(data: dict, *, grades_summary: dict | None = None) -> s
                 groups.setdefault(topic, []).append(rev)
             for topic, items_list in groups.items():
                 lines.append("")
-                lines.append(f"### {header} - {topic}")
+                lines.append(f"### {topic}")
                 lines.append("<!-- TOML-COURSE-REVIEWS -->")
                 for item in items_list:
                     content = _norm_block(item.get("content"))
