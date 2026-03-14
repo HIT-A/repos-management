@@ -1,0 +1,29 @@
+name: Lint
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install uv and restore cache
+        uses: astral-sh/setup-uv@v7
+        with:
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run ruff check
+        run: uv run ruff check .
+
+      - name: Run ruff format check
+        run: uv run ruff format --diff .

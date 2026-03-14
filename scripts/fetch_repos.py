@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 import requests
 from dotenv import load_dotenv
 
@@ -37,7 +39,7 @@ def get_repos(org_name, access_token):
 
 def main():
     repos = get_repos(ORG_NAME, PERSONAL_ACCESS_TOKEN)
-    with open("repos_list.txt", "w") as f:
+    with Path("repos_list.txt").open("w") as f:
         for repo in repos:
             f.write(f"{repo}\n")
 

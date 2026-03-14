@@ -25,12 +25,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-# Python 3.11+ has tomllib in stdlib, otherwise use tomli
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore
-
 # For writing TOML
 try:
     import tomli_w  # type: ignore
@@ -504,7 +498,7 @@ class MarkdownParser:
         if badge_source == "grades_summary":
             return
 
-        for alt, label, message, color in badges:
+        for _alt, label, message, _color in badges:
             if label == "学分":
                 self.doc.credits = message
             elif label in ("学时构成", "学时分布"):

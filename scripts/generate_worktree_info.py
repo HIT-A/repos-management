@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-import subprocess
-import json
-import sys
-import os
-import logging
-from pathlib import Path
-import re
 import hashlib
+import json
+import logging
+import re
+import subprocess
+import sys
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,8 +17,7 @@ def cmd(cmds, cwd=None, allow_fail=False) -> bytes:
         result = subprocess.run(
             cmds,
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=False,
             cwd=cwd,
         )
@@ -92,10 +90,10 @@ def decode_git_ls_tree_path(content: bytes) -> str:
         try:
             value_bytes = eval(rf'b"\{chr(escaped_alpha)}"')
             assert isinstance(value_bytes, bytes) and len(value_bytes) == 1
-        except SyntaxWarning or SyntaxError or AssertionError:
+        except (SyntaxWarning, SyntaxError, AssertionError) as err:
             raise RuntimeError(
                 f"Invalid git ls-tree output: path ill-escaped, wrong escaped character: `{content}`"
-            )
+            ) from err
         escaped_array.append(ord(value_bytes))
         idx += 1
 
@@ -156,7 +154,7 @@ def save_json(path: str | Path, obj):
         path = Path(path)
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    with path.open("w", encoding="utf-8") as f:
         json.dump(obj, f, indent=2, ensure_ascii=False)
     logger.info(f"Worktree info saved to `{path}`")
 
@@ -179,19 +177,19 @@ def collect_info_and_saved_to_another_branch(worktree_branch_name: str):
 def get_last_worktree_info_target(
     worktree_branch_name: str, use_remote: bool = True
 ) -> str | None:
-    PAT = re.compile(rb"<\|([a-z0-9]+)\|>")
+    pat = re.compile(rb"<\|([a-z0-9]+)\|>")
     try:
         branch_name = ("origin/" if use_remote else "") + worktree_branch_name
         commit_message = cmd(
             ["git", "log", "-1", "--oneline", branch_name, "--"],
             allow_fail=True,
         )
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         logger.info(f"Worktree branch `{worktree_branch_name}` is empty")
         return None
 
     logger.info(f"Last commit message: `{commit_message}`")
-    match_result = PAT.findall(commit_message)
+    match_result = pat.findall(commit_message)
     if len(match_result) != 1:
         logger.info("Last commit message does not contain worktree info target")
         logger.debug(match_result)
@@ -224,6 +222,6 @@ if __name__ == "__main__":
     logger.level = logging.DEBUG
     # print hash of script myself
     logger.info(
-        f"Script hash: `{hashlib.sha256(open(__file__).read().encode('utf-8')).hexdigest()}`"
+        f"Script hash: `{hashlib.sha256(Path(__file__).read_text(encoding='utf-8').encode('utf-8')).hexdigest()}`"
     )
     main()

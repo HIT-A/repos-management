@@ -33,7 +33,6 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-
 WARNING_START = "<!-- RDME_TOML_AUTOGEN_WARNING_START -->"
 WARNING_END = "<!-- RDME_TOML_AUTOGEN_WARNING_END -->"
 
@@ -51,6 +50,7 @@ GRADES_SUMMARY_URL = (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _append_github_output(key: str, value: str) -> None:
     out = os.getenv("GITHUB_OUTPUT")
     if not out:
@@ -65,7 +65,9 @@ def _normalize_newlines(text: str) -> str:
 
 
 def _build_block(message: str) -> str:
-    msg = (message or "").strip() or "TOML 自动化格式化/生成 README 失败，请检查 readme.toml。"
+    msg = (
+        message or ""
+    ).strip() or "TOML 自动化格式化/生成 README 失败，请检查 readme.toml。"
     lines = [
         WARNING_START,
         "> [!WARNING]",
@@ -110,7 +112,9 @@ def _update_warning(readme_path: Path, *, set_warning: bool, message: str = "") 
     if readme_path.exists():
         text = _normalize_newlines(readme_path.read_text(encoding="utf-8"))
 
-    new_text = _ensure_block_at_top(text, message) if set_warning else _strip_block(text)
+    new_text = (
+        _ensure_block_at_top(text, message) if set_warning else _strip_block(text)
+    )
     if new_text != text:
         readme_path.write_text(new_text, encoding="utf-8", newline="\n")
 
@@ -119,6 +123,7 @@ def _download(url: str, dest: Path) -> None:
     # Support local file paths for testing: copy instead of HTTP download.
     if url.startswith("/") or url.startswith("file://"):
         import shutil as _shutil
+
         src = url.removeprefix("file://")
         _shutil.copy2(src, dest)
         return
@@ -130,13 +135,18 @@ def _download(url: str, dest: Path) -> None:
 def _run(cmd: list[str], *, cwd: Path) -> tuple[bool, str]:
     proc = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
     ok = proc.returncode == 0
-    out = (proc.stdout or "") + ("\n" if proc.stdout and proc.stderr else "") + (proc.stderr or "")
+    out = (
+        (proc.stdout or "")
+        + ("\n" if proc.stdout and proc.stderr else "")
+        + (proc.stderr or "")
+    )
     return ok, out.strip()
 
 
 # ---------------------------------------------------------------------------
 # Change detection
 # ---------------------------------------------------------------------------
+
 
 def _detect_direction(repo_root: Path, toml_name: str, readme_name: str) -> str:
     """Detect which file was modified in the latest commit.
@@ -148,7 +158,7 @@ def _detect_direction(repo_root: Path, toml_name: str, readme_name: str) -> str:
         ok, out = _run(["git", "diff", "HEAD~1", "--name-only"], cwd=repo_root)
         if not ok:
             return "toml"
-        changed = {l.strip() for l in out.strip().splitlines() if l.strip()}
+        changed = {line.strip() for line in out.strip().splitlines() if line.strip()}
         t = toml_name in changed
         r = readme_name in changed
         if t and r:
@@ -165,6 +175,7 @@ def _detect_direction(repo_root: Path, toml_name: str, readme_name: str) -> str:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     p = argparse.ArgumentParser(description="RDME bidirectional autogen runner")
@@ -208,7 +219,9 @@ def main() -> int:
             readme_text = readme_path.read_text(encoding="utf-8")
             if "<!-- TOML-META:" not in readme_text:
                 needs_migration = True
-                print("[rdme] README lacks TOML-META marker → forcing forward pass for migration")
+                print(
+                    "[rdme] README lacks TOML-META marker → forcing forward pass for migration"
+                )
         except Exception:
             pass
 
@@ -217,10 +230,7 @@ def main() -> int:
     #   readme (only README changed)          → reverse then forward
     #   needs_migration                       → forward only (skip reverse even if README changed)
     need_reverse = (
-        direction == "readme"
-        and toml_exists
-        and readme_exists
-        and not needs_migration
+        direction == "readme" and toml_exists and readme_exists and not needs_migration
     )
 
     if not toml_exists and readme_exists:
@@ -257,7 +267,9 @@ def main() -> int:
             gen_log = f"download converter failed: {e}"
             # Cannot proceed without forward converter
             ok = False
-            _report_failure(is_main, readme_path, fmt_ok, fmt_log, gen_ok, gen_log, rev_ok, rev_log)
+            _report_failure(
+                is_main, readme_path, fmt_ok, fmt_log, gen_ok, gen_log, rev_ok, rev_log
+            )
             return 0 if ok else 1
 
         # Download reverse converter (only when needed)
@@ -280,9 +292,12 @@ def main() -> int:
             print("[rdme] running reverse: README.md → readme.toml")
             rev_ok, rev_log = _run(
                 [
-                    sys.executable, str(rev_conv),
-                    "--input", str(readme_path.resolve()),
-                    "--output", str(toml_path.resolve()),
+                    sys.executable,
+                    str(rev_conv),
+                    "--input",
+                    str(readme_path.resolve()),
+                    "--output",
+                    str(toml_path.resolve()),
                     "--overwrite",
                 ],
                 cwd=repo_root,
@@ -291,7 +306,9 @@ def main() -> int:
                 print("[rdme] reverse OK")
                 # Format the newly generated TOML
                 if shutil.which("taplo") is not None:
-                    fmt_ok, fmt_log = _run(["taplo", "fmt", str(toml_path)], cwd=repo_root)
+                    fmt_ok, fmt_log = _run(
+                        ["taplo", "fmt", str(toml_path)], cwd=repo_root
+                    )
             else:
                 print("[rdme] reverse FAILED")
                 if rev_log:
@@ -300,12 +317,20 @@ def main() -> int:
         # --- Run forward: TOML → README ---------------------------------
         print("[rdme] running forward: readme.toml → README.md")
         gen_ok, gen_log = _run(
-            [sys.executable, str(conv), "--input", str(toml_path.resolve()), "--overwrite"],
+            [
+                sys.executable,
+                str(conv),
+                "--input",
+                str(toml_path.resolve()),
+                "--overwrite",
+            ],
             cwd=tmp_dir,
         )
 
     ok = fmt_ok and gen_ok and rev_ok
-    _report_failure(is_main, readme_path, fmt_ok, fmt_log, gen_ok, gen_log, rev_ok, rev_log)
+    _report_failure(
+        is_main, readme_path, fmt_ok, fmt_log, gen_ok, gen_log, rev_ok, rev_log
+    )
     _append_github_output("direction", direction)
     _append_github_output("need_reverse", "true" if need_reverse else "false")
     return 0 if ok else 1
