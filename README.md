@@ -178,12 +178,27 @@ python3 -m repos_management workflow trigger
 
 Some power tools remain in `./scripts/` (use with care):
 
-- `approve_pr.sh`, `close_pr.sh` - Approve/close PRs
-- `delete_dir.sh`, `batch_delete.sh` - Delete files/directories across repos
-- `generate_worktree_info.py` - Generate worktree info JSON
-- `rdme_autogen.py` - Used by course repositories CI to orchestrate conversion
+### GitHub Operations
+- `add_workflow.sh` - 为课程仓库添加/更新 workflow 文件（通过 PR）
+- `add_licenses.py` - 批量添加 LICENSE 文件（通过 PR）
+- `add_secrets.sh` - 批量添加 GitHub secrets
+- `approve_pr.sh` - 批量审核通过 PR
+- `close_pr.sh` - 批量关闭 PR
+- `batch_trigger_workflows.sh` - 批量触发工作流（已废弃，使用 CLI）
+
+### File Operations
+- `delete_dir.sh` - 删除仓库中的目录
+- `batch_delete.sh` - 批量删除多仓库中的目录
+
+### Conversion Scripts
 - `convert_toml_to_readme.py` - Convert TOML to README
 - `readme_to_toml.py` - Convert README to TOML
+
+### Other
+- `generate_worktree_info.py` - Generate worktree info JSON
+- `rdme_autogen.py` - Used by course repositories CI to orchestrate conversion
+- `pull_or_clone.py` - Pull or clone repositories
+- `fetch_repos.py` - Fetch repositories list
 
 ### Legacy scripts (deprecated, functionality merged into CLI)
 
@@ -191,9 +206,7 @@ The following scripts have been consolidated into the CLI (`python3 -m repos_man
 
 | Legacy Script | Current CLI Command |
 |--------------|---------------------|
-| `add_workflow.sh` | Use `workflow trigger` to trigger workflows |
-| `add_licenses.py` | Use GitHub API directly |
-| `add_secrets.sh` | Use GitHub API directly |
+| `batch_trigger_workflows.sh` | `python3 -m repos_management workflow trigger` |
 
 If you need the original scripts, they are available in git history:
 ```bash
