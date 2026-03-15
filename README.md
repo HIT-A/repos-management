@@ -178,7 +178,24 @@ python3 -m repos_management workflow trigger
 
 Some power tools remain in `./scripts/` (use with care):
 
-- `approve_pr.sh`, `close_pr.sh`
-- `delete_dir.sh`, `batch_delete.sh`
-- `generate_worktree_info.py`
-- `rdme_autogen.py` (used by course repositories CI to orchestrate conversion)
+- `approve_pr.sh`, `close_pr.sh` - Approve/close PRs
+- `delete_dir.sh`, `batch_delete.sh` - Delete files/directories across repos
+- `generate_worktree_info.py` - Generate worktree info JSON
+- `rdme_autogen.py` - Used by course repositories CI to orchestrate conversion
+- `convert_toml_to_readme.py` - Convert TOML to README
+- `readme_to_toml.py` - Convert README to TOML
+
+### Legacy scripts (deprecated, functionality merged into CLI)
+
+The following scripts have been consolidated into the CLI (`python3 -m repos_management`):
+
+| Legacy Script | Current CLI Command |
+|--------------|---------------------|
+| `add_workflow.sh` | Use `workflow trigger` to trigger workflows |
+| `add_licenses.py` | Use GitHub API directly |
+| `add_secrets.sh` | Use GitHub API directly |
+
+If you need the original scripts, they are available in git history:
+```bash
+git show <commit>:scripts/add_workflow.sh
+```

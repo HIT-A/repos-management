@@ -176,9 +176,26 @@ python3 -m repos_management workflow trigger
 
 ## 维护脚本
 
-部分“强力工具”仍保留在 `./scripts/` 下（谨慎使用）：
+部分"强力工具"仍保留在 `./scripts/` 下（谨慎使用）：
 
-- `approve_pr.sh`, `close_pr.sh`
-- `delete_dir.sh`, `batch_delete.sh`
-- `generate_worktree_info.py`
-- `rdme_autogen.py`（课程仓库 CI 中用于编排转换流程）
+- `approve_pr.sh`, `close_pr.sh` - 审核/关闭 PR
+- `delete_dir.sh`, `batch_delete.sh` - 批量删除文件/目录
+- `generate_worktree_info.py` - 生成 worktree 信息
+- `rdme_autogen.py` - 课程仓库 CI 中用于编排转换流程
+- `convert_toml_to_readme.py` - TOML 转 README
+- `readme_to_toml.py` - README 转 TOML
+
+### 已废弃的脚本（功能已合并到 CLI）
+
+以下脚本已整合到 CLI (`python3 -m repos_management`)：
+
+| 废弃脚本 | 当前 CLI 命令 |
+|---------|--------------|
+| `add_workflow.sh` | 使用 `workflow trigger` 触发工作流 |
+| `add_licenses.py` | 直接使用 GitHub API |
+| `add_secrets.sh` | 直接使用 GitHub API |
+
+如需使用原始脚本，可在 git 历史中查看：
+```bash
+git show <commit>:scripts/add_workflow.sh
+```
