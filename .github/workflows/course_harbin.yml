@@ -1,0 +1,15 @@
+name: Course Workflow - Harbin
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  update:
+    uses: ./.github/workflows/reusable_worktree_generate.yml
+    with:
+      trigger_page_build: false
+      target_repo: DATA_HB
+    secrets:
+      PAT: ${{ secrets.PAT }}

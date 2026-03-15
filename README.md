@@ -2,7 +2,7 @@
 
 # repos-management
 
-Tooling for managing course repositories in **HITSZ-OpenAuto**.
+Tooling for managing course repositories in **HIT-A**.
 
 [English](README.md) | [中文](README.zh-CN.md)
 
@@ -109,7 +109,7 @@ Trigger each course repo workflow file (default: `trigger-workflow.yml`) via `wo
 
 ```bash
 python3 -m repos_management workflow trigger \
-  --org HITSZ-OpenAuto \
+  --org HIT-A \
   --repos-file repos_list.txt \
   --workflow-file trigger-workflow.yml \
   --ref main \
@@ -121,7 +121,7 @@ python3 -m repos_management workflow trigger \
 Fetch repositories under an org and write `repos_list.txt`.
 
 ```bash
-python3 -m repos_management repos fetch --org HITSZ-OpenAuto
+python3 -m repos_management repos fetch --org HIT-A
 ```
 
 ---
@@ -163,7 +163,7 @@ A typical course repository contains:
 This workflow calls the reusable workflow in this repo:
 
 ```yaml
-uses: HITSZ-OpenAuto/repos-management/.github/workflows/reusable_worktree_generate.yml@main
+uses: HIT-A/repos-management/.github/workflows/reusable_worktree_generate.yml@main
 ```
 
 To update all course repositories after `repos-management` changes are merged to `main`, run:
