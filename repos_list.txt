@@ -123,3 +123,5 @@ MECH3060
 MECH3005
 MECH3041
 MECH2020
+normal-course-template
+multi-project-course-template
