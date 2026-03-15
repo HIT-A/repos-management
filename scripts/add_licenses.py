@@ -1,5 +1,6 @@
-import requests
 import base64
+
+import requests
 
 # GitHub API base URL
 base_url = "https://api.github.com"

@@ -1,58 +1,53 @@
 import os
 import subprocess
+from pathlib import Path
+
 from github import Github
 
-# 替换为你的 GitHub 访问令牌
 GITHUB_TOKEN = "your_token"
-# 替换为目标组织名
 ORGANIZATION_NAME = "HITSZ-OpenAuto"
-# 替换为目标文件夹路径
-TARGET_FOLDER = "./"
-# 替换为你的代理地址
+TARGET_FOLDER = Path("./")
 os.environ["HTTP_PROXY"] = "http://your_proxy:port"
 os.environ["HTTPS_PROXY"] = "http://your_proxy:port"
 
-# 跳过的仓库
 bypass_list = ["HITSZ-OpenAuto", "hoa-moe"]
 
 
-def clone_or_update_repo(repo_url, target_path):
+def clone_or_update_repo(repo_url: str, target_path: Path):
     """克隆或更新仓库"""
-    if os.path.exists(target_path):
-        if os.path.isdir(os.path.join(target_path, ".git")):
+    if target_path.exists():
+        if (target_path / ".git").is_dir():
             print(f"Switching to main branch and updating repository: {repo_url}")
             try:
-                # 切换到主分支
-                subprocess.run(["git", "-C", target_path, "checkout", "main"], check=True)
+                subprocess.run(
+                    ["git", "-C", str(target_path), "checkout", "main"], check=True
+                )
             except subprocess.CalledProcessError:
-                print(f"Failed to switch to main branch in {target_path}. Skipping update.")
+                print(
+                    f"Failed to switch to main branch in {target_path}. Skipping update."
+                )
                 raise
-            subprocess.run(["git", "-C", target_path, "pull"], check=True)
+            subprocess.run(["git", "-C", str(target_path), "pull"], check=True)
         else:
             raise Exception(f"Invalid Git directory: {target_path}")
     else:
         print(f"Cloning repository: {repo_url}")
-        subprocess.run(["git", "clone", repo_url, target_path], check=True)
+        subprocess.run(["git", "clone", repo_url, str(target_path)], check=True)
 
 
 def main():
-    # 初始化 GitHub 客户端
     g = Github(GITHUB_TOKEN)
-
-    # 获取组织
     org = g.get_organization(ORGANIZATION_NAME)
 
-    # 确保目标文件夹存在
-    os.makedirs(TARGET_FOLDER, exist_ok=True)
+    TARGET_FOLDER.mkdir(parents=True, exist_ok=True)
 
-    # 获取所有仓库
     for repo in org.get_repos():
         repo_name = repo.name
         if repo_name in bypass_list:
-            print("Skipping {}".format(repo_name))
+            print(f"Skipping {repo_name}")
             continue
         repo_url = repo.ssh_url
-        target_path = os.path.join(TARGET_FOLDER, repo_name)
+        target_path = TARGET_FOLDER / repo_name
 
         try:
             clone_or_update_repo(repo_url, target_path)
