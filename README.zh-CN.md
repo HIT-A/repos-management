@@ -113,9 +113,7 @@ uses: HIT-A/repos-management/.github/workflows/reusable_worktree_generate.yml@ma
 
 ---
 
-## 维护脚本
-
-部分"强力工具"仍保留在 `./scripts/` 下（谨慎使用）：
+## 保留脚本
 
 ### 转换脚本（保留）
 - `convert_toml_to_readme.py` - TOML 转 README

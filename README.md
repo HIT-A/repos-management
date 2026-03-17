@@ -29,7 +29,6 @@ python3 -m repos_management --help
 ## Requirements
 
 - Python **3.11+**
-- Optional (recommended): [GitHub CLI](https://cli.github.com/) (`gh`)
 
 ---
 
@@ -113,9 +112,7 @@ After `repos-management` changes are merged to `main`, course repositories conti
 
 ---
 
-## Maintenance scripts
-
-Some power tools remain in `./scripts/` (use with care):
+## Maintained scripts
 
 ### Conversion Scripts (kept)
 - `convert_toml_to_readme.py` - Convert TOML to README
