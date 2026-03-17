@@ -8,7 +8,7 @@ permissions:
 
 concurrency:
   group: rdme-worktree-generate-${{ github.repository }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   worktree_update:
