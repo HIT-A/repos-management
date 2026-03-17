@@ -5,8 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   update:
     uses: ./.github/workflows/reusable_worktree_generate.yml
-    secrets:
-      PAT: ${{ secrets.PAT }}
