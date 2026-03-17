@@ -2,7 +2,6 @@ name: Reusable Workflow To Update Worktree and Trigger Workflow
 
 on:
   workflow_call:
-    inputs:
     secrets:
       PAT:
         description: 'Personal Access Token'
