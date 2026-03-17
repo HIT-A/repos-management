@@ -11,11 +11,6 @@ Only supports the *final* normalized schema (no legacy compatibility):
 - normal: unified [[sections]]; section items contain only {content, author?}
 - multi-project: [[courses]] with [[courses.sections]]; teacher list in [[courses.teachers]]
 
-Badges (shields.io) are preserved:
-- Optional grading badges from grades_summary.toml (best-effort)
-- Basic info badges parsed from a "基本信息" section; that section is removed from
-    the rendered body to avoid duplication.
-
 CLI
 - --input FILE|DIR: convert one file or scan DIR/**/readme.toml
 - --all: convert ./final/**/readme.toml
@@ -531,7 +526,7 @@ def _extract_basic_info_from_sections(
     return (badges, kept)
 
 
-def _render_sections_schema(data: dict, *, grades_summary: dict | None = None) -> str:
+def _render_sections_schema(data: dict) -> str:
     course_name = _s(data.get("course_name")).strip()
     course_code = _s(data.get("course_code")).strip()
     description = _norm_block(data.get("description"))
@@ -547,28 +542,6 @@ def _render_sections_schema(data: dict, *, grades_summary: dict | None = None) -
     lines.append(f'<!-- TOML-META: repo_type="{repo_type}" -->')
 
     sections = [x for x in _as_list(data.get("sections")) if isinstance(x, dict)]
-
-    fallback_grading_badges: list[str] = []
-    if grades_summary and course_code:
-        grade = _pick_grade_string(grades_summary, course_code)
-        fallback_grading_badges = _render_grading_badges_from_grade_string(grade)
-
-    basic_badges, sections = _extract_basic_info_from_sections(
-        sections, fallback_grading_badges=fallback_grading_badges
-    )
-    if basic_badges:
-        # Mark badge source for round-trip: "basic_info" = from TOML 基本信息 section,
-        # "grades_summary" = external fallback (should NOT be written back to TOML).
-        has_basic_info_section = any(
-            _s(s.get("title")).strip() == "基本信息"
-            for s in _as_list(data.get("sections"))
-            if isinstance(s, dict)
-        )
-        badge_source = "basic_info" if has_basic_info_section else "grades_summary"
-        lines.append(f'<!-- TOML-BADGES: source="{badge_source}" -->')
-        lines.append("")
-        lines.extend(basic_badges)
-
     if description:
         lines.append("")
         lines.append(description)
@@ -618,7 +591,7 @@ def _render_sections_schema(data: dict, *, grades_summary: dict | None = None) -
     return "\n".join(lines).rstrip() + "\n"
 
 
-def render_multi_project(data: dict, *, grades_summary: dict | None = None) -> str:
+def render_multi_project(data: dict) -> str:
     course_name = _s(data.get("course_name")).strip()
     course_code = _s(data.get("course_code")).strip()
     description = _norm_block(data.get("description"))
@@ -653,27 +626,7 @@ def render_multi_project(data: dict, *, grades_summary: dict | None = None) -> s
         # Preserve exact code/name for lossless round-trip (name may contain ' - ')
         lines.append(f'<!-- TOML-COURSE: code="{code}" name="{name}" -->')
 
-        # Basic info badges (and strip the section from body)
         sections = [x for x in _as_list(c.get("sections")) if isinstance(x, dict)]
-
-        fallback_grading_badges: list[str] = []
-        if grades_summary and code:
-            grade = _pick_grade_string(grades_summary, code)
-            fallback_grading_badges = _render_grading_badges_from_grade_string(grade)
-
-        basic_badges, sections = _extract_basic_info_from_sections(
-            sections, fallback_grading_badges=fallback_grading_badges
-        )
-        if basic_badges:
-            has_basic_info_section = any(
-                _s(s.get("title")).strip() == "基本信息"
-                for s in _as_list(c.get("sections"))
-                if isinstance(s, dict)
-            )
-            badge_source = "basic_info" if has_basic_info_section else "grades_summary"
-            lines.append(f'<!-- TOML-BADGES: source="{badge_source}" -->')
-            lines.append("")
-            lines.extend(basic_badges)
 
         teacher_lines = _render_teachers_with_reviews(c.get("teachers"))
         if teacher_lines:
@@ -746,9 +699,8 @@ def render_multi_project(data: dict, *, grades_summary: dict | None = None) -> s
 
 def render_readme(data: dict, *, toml_path: Path) -> str:
     repo_type = _s(data.get("repo_type")).strip().lower()
-    grades_summary = _load_grades_summary(toml_path)
     if repo_type == "multi-project":
-        return render_multi_project(data, grades_summary=grades_summary)
+        return render_multi_project(data)
     # Be tolerant for minimal normal repos: allow missing [[sections]] and treat it as empty.
     # Still fail loudly if sections exists but is not a list (schema corruption).
     sections_val = data.get("sections")
@@ -757,7 +709,7 @@ def render_readme(data: dict, *, toml_path: Path) -> str:
         data["sections"] = []
     elif not isinstance(sections_val, list):
         raise ValueError("normal repo requires unified [[sections]] schema")
-    return _render_sections_schema(data, grades_summary=grades_summary)
+    return _render_sections_schema(data)
 
 
 def _iter_readme_tomls(root: Path) -> list[Path]:

@@ -16,9 +16,7 @@ This repository provides:
 
 - A **single CLI** entrypoint for common operations:
   - Convert `readme.toml` ⇄ `README.md`
-  - Bulk-trigger course repositories GitHub Actions workflows
-  - Fetch and maintain the organization repositories list (`repos_list.txt`)
-- The **reusable GitHub Actions workflow** used by course repositories to generate/update their worktrees.
+- The **reusable GitHub Actions workflow** used by course repositories for bidirectional lossless conversion.
 
 The preferred way to use this repo is:
 
@@ -49,38 +47,6 @@ python3 -m repos_management rdme toml2md --input path/to/readme.toml --overwrite
 python3 -m repos_management rdme md2toml --input path/to/README.md --overwrite
 ```
 
-### 3) Trigger all course repositories workflows
-
-```bash
-python3 -m repos_management workflow trigger --delay 2
-```
-
-Dry-run:
-
-```bash
-python3 -m repos_management workflow trigger --dry-run
-```
-
----
-
-## Authentication
-
-### `workflow trigger`
-
-- Uses `GITHUB_TOKEN` if set.
-- Otherwise falls back to `gh auth token`.
-
-The token must be able to dispatch workflows (typical scopes: `repo`, `workflow`).
-
-### `repos fetch`
-
-- Uses `PERSONAL_ACCESS_TOKEN` from env or `.env`.
-- You can also pass `--token` explicitly.
-
-Typical scopes: `read:org`, `repo`.
-
----
-
 ## CLI reference
 
 ### `rdme toml2md`
@@ -102,29 +68,6 @@ python3 -m repos_management rdme md2toml --input <file-or-dir> [--output <file>]
 ```
 
 - If `--input` is a directory, it scans `**/README.md` and writes `readme.toml` next to each file.
-
-### `workflow trigger`
-
-Trigger each course repo workflow file (default: `trigger-workflow.yml`) via `workflow_dispatch`.
-
-```bash
-python3 -m repos_management workflow trigger \
-  --org HIT-A \
-  --repos-file repos_list.txt \
-  --workflow-file trigger-workflow.yml \
-  --ref main \
-  --delay 2
-```
-
-### `repos fetch`
-
-Fetch repositories under an org and write `repos_list.txt`.
-
-```bash
-python3 -m repos_management repos fetch --org HIT-A
-```
-
----
 
 ## Lecturers TOML schema (breaking change)
 
@@ -166,11 +109,7 @@ This workflow calls the reusable workflow in this repo:
 uses: HIT-A/repos-management/.github/workflows/reusable_worktree_generate.yml@main
 ```
 
-To update all course repositories after `repos-management` changes are merged to `main`, run:
-
-```bash
-python3 -m repos_management workflow trigger
-```
+After `repos-management` changes are merged to `main`, course repositories continue running their own workflows with the reusable bidirectional pipeline.
 
 ---
 
@@ -178,37 +117,9 @@ python3 -m repos_management workflow trigger
 
 Some power tools remain in `./scripts/` (use with care):
 
-### GitHub Operations
-- `add_workflow.sh` - 为课程仓库添加/更新 workflow 文件（通过 PR）
-- `add_licenses.py` - 批量添加 LICENSE 文件（通过 PR）
-- `add_secrets.sh` - 批量添加 GitHub secrets
-- `approve_pr.sh` - 批量审核通过 PR
-- `close_pr.sh` - 批量关闭 PR
-- `batch_trigger_workflows.sh` - 批量触发工作流（已废弃，使用 CLI）
-
-### File Operations
-- `delete_dir.sh` - 删除仓库中的目录
-- `batch_delete.sh` - 批量删除多仓库中的目录
-
-### Conversion Scripts
+### Conversion Scripts (kept)
 - `convert_toml_to_readme.py` - Convert TOML to README
 - `readme_to_toml.py` - Convert README to TOML
 
-### Other
-- `generate_worktree_info.py` - Generate worktree info JSON
-- `rdme_autogen.py` - Used by course repositories CI to orchestrate conversion
-- `pull_or_clone.py` - Pull or clone repositories
-- `fetch_repos.py` - Fetch repositories list
-
-### Legacy scripts (deprecated, functionality merged into CLI)
-
-The following scripts have been consolidated into the CLI (`python3 -m repos_management`):
-
-| Legacy Script | Current CLI Command |
-|--------------|---------------------|
-| `batch_trigger_workflows.sh` | `python3 -m repos_management workflow trigger` |
-
-If you need the original scripts, they are available in git history:
-```bash
-git show <commit>:scripts/add_workflow.sh
-```
+### CI Scripts (kept)
+- `rdme_autogen.py` - Used by course repositories CI to orchestrate bidirectional conversion
