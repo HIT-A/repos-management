@@ -37,7 +37,10 @@ WARNING_START = "<!-- RDME_TOML_AUTOGEN_WARNING_START -->"
 WARNING_END = "<!-- RDME_TOML_AUTOGEN_WARNING_END -->"
 
 _BASE_RAW = (
-    "https://raw.githubusercontent.com/HITSZ-OpenAuto/repos-management/main/scripts"
+    os.getenv(
+        "REPOS_MANAGEMENT_RAW_BASE",
+        "https://raw.githubusercontent.com/HIT-A/repos-management/main/scripts",
+    ).strip()
 )
 
 # ---------------------------------------------------------------------------

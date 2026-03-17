@@ -41,7 +41,7 @@ def cmd_rdme_md2toml(ns: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="python -m repos_management",
-        description="HITSZ-OpenAuto repository management CLI",
+        description="HIT-A repository management CLI",
     )
 
     sp = p.add_subparsers(dest="group", required=True)

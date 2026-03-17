@@ -179,11 +179,6 @@ class Document:
     courses: list[Course] = field(default_factory=list)  # For multi-project
     misc: dict | list[dict] = field(default_factory=dict)  # e.g. MOOC misc
 
-    # Metadata from badges
-    credits: str = ""
-    hours: str = ""
-    grading: str = ""
-
 
 # ============================================================================
 # Parsing Utilities
@@ -205,14 +200,6 @@ def normalize_text(text: str) -> str:
                 line[min_indent:] if line.strip() else line for line in lines[1:]
             ]
     return "\n".join(lines).strip()
-
-
-def decode_shields_component(s: str) -> str:
-    """Decode a shields.io URL path component."""
-    s = s.replace("%20", " ")
-    s = s.replace("%25", "%")
-    s = re.sub(r"--", "-", s)
-    return s
 
 
 _DATE_RE = re.compile(r"\d{4}-\d{2}(?:-\d{2})?")
@@ -340,35 +327,6 @@ def parse_author_line(line: str) -> list[Author] | Author | None:
     return authors
 
 
-def parse_badge_url(url: str) -> tuple[str, str, str]:
-    """Parse shields.io badge URL."""
-    m = re.search(r"/badge/(.+)$", url)
-    if not m:
-        return ("", "", "")
-
-    path = m.group(1)
-    path = path.replace("--", "\x00ENCODED_DASH\x00")
-    parts = path.split("-")
-    parts = [p.replace("\x00ENCODED_DASH\x00", "-") for p in parts]
-
-    if len(parts) >= 3:
-        return (
-            decode_shields_component(parts[0]),
-            decode_shields_component(parts[1]),
-            decode_shields_component(parts[2]),
-        )
-    elif len(parts) == 2:
-        return (
-            decode_shields_component(parts[0]),
-            "",
-            decode_shields_component(parts[1]),
-        )
-    elif len(parts) == 1:
-        return (decode_shields_component(parts[0]), "", "")
-
-    return ("", "", "")
-
-
 def parse_toml_comment(line: str) -> dict[str, str]:
     """Parse HTML comment containing TOML metadata.
 
@@ -428,9 +386,6 @@ class MarkdownParser:
                 continue
             break
 
-        # Parse badges
-        self._parse_badges()
-
         # Parse sections
         if self.doc.repo_type == "multi-project":
             # Multi-project handles its own description parsing
@@ -455,61 +410,6 @@ class MarkdownParser:
                     self.doc.course_name = title
                 self.pos = i + 1
                 return
-
-    def _parse_badges(self):
-        """Parse shields.io badges.
-
-        Badges marked with ``<!-- TOML-BADGES: source="grades_summary" -->``
-        come from an external grades_summary.toml and should NOT be written
-        back to the course TOML (they are regenerated on every forward pass).
-        Only badges from ``source="basic_info"`` (or unmarked legacy badges)
-        are persisted to the ``基本信息`` section in TOML.
-        """
-        badges = []
-        badge_source = "basic_info"  # default for legacy / unmarked READMEs
-
-        for i in range(self.pos, len(self.lines)):
-            line = self.lines[i]
-
-            # Detect badge source marker
-            badge_comment = parse_toml_comment(line)
-            if badge_comment.get("type") == "badges":
-                badge_source = badge_comment.get("source", "basic_info")
-                self.pos = i + 1
-                continue
-
-            m = re.match(
-                r"!\[([^\]]*)\]\((https://img\.shields\.io/badge/[^)]+)\)", line
-            )
-            if m:
-                alt = m.group(1)
-                url = m.group(2)
-                label, message, color = parse_badge_url(url)
-                badges.append((alt, label, message, color))
-                self.pos = i + 1
-                continue
-
-            if line.strip() and not line.startswith("<!--"):
-                break
-
-            self.pos = i + 1
-
-        # Skip storing badge data if they come from external grades_summary
-        if badge_source == "grades_summary":
-            return
-
-        for _alt, label, message, _color in badges:
-            if label == "学分":
-                self.doc.credits = message
-            elif label in ("学时构成", "学时分布"):
-                self.doc.hours = message
-            elif label == "成绩构成":
-                pass
-            elif message:
-                if self.doc.grading:
-                    self.doc.grading += f" | {label} {message}"
-                else:
-                    self.doc.grading = f"{label} {message}"
 
     def _parse_description(self):
         """Parse description paragraphs before first H2."""
@@ -1427,21 +1327,6 @@ def generate_toml(doc: Document) -> str:
                             lines.append(f"author = {format_toml_dict(author)}")
 
         return "\n".join(lines) + "\n"
-
-    # Normal mode: basic info section
-    basic_info_items = []
-    if doc.credits:
-        basic_info_items.append(f"【学分】: {doc.credits}")
-    if doc.grading:
-        basic_info_items.append(f"【成绩构成】: {doc.grading}")
-
-    if basic_info_items:
-        lines.append("")
-        lines.append("[[sections]]")
-        lines.append('title = "基本信息"')
-        lines.append("")
-        lines.append("[[sections.items]]")
-        lines.append(f"content = {format_toml_string(chr(10).join(basic_info_items))}")
 
     # Lecturers (new schema)
     if not doc.lecturers.is_empty():

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import re
-import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -46,245 +45,6 @@ def _as_list(v: Any) -> list:
 
 def _norm_block(text: Any) -> str:
     return _s(text).replace("\r\n", "\n").replace("\r", "\n").strip()
-
-
-def _normalize_multiline_md(text: Any) -> str:
-    s = _s(text).replace("\r\n", "\n").replace("\r", "\n")
-    s = textwrap.dedent(s)
-    return s.strip()
-
-
-def _encode_shields_component(text: str) -> str:
-    """Encode a single shields.io path component.
-
-    shields.io uses '-' as a delimiter; a literal '-' must be written as '--'.
-    '%' must be percent-encoded to avoid breaking URLs.
-    """
-
-    s = _s(text).strip()
-    if not s:
-        return ""
-    s = s.replace("-", "--")
-    s = s.replace("%", "%25")
-    s = s.replace(" ", "%20")
-    return s
-
-
-def _render_shields_badge(
-    *, alt: str, label: str, message: str | None = None, color: str | None = None
-) -> str:
-    base = "https://img.shields.io/badge/"
-    if message is None and color is not None:
-        path = f"{_encode_shields_component(label)}-{_encode_shields_component(color)}"
-    else:
-        msg = "" if message is None else message
-        col = "brightgreen" if color is None else color
-        path = (
-            f"{_encode_shields_component(label)}-"
-            f"{_encode_shields_component(msg)}-"
-            f"{_encode_shields_component(col)}"
-        )
-    return f"![{alt}]({base}{path})"
-
-
-def _split_label_value_tail(text: str) -> tuple[str, str]:
-    """Split a segment like '理论学时 32' or '理论学时32' into ('理论学时','32')."""
-
-    s = _s(text).strip()
-    if not s:
-        return ("", "")
-    parts = s.split()
-    if len(parts) >= 2:
-        tail = parts[-1].strip()
-        if re.fullmatch(r"\d+(?:\.\d+)?%?", tail):
-            label = "".join(parts[:-1]).strip()
-            return (label or s, tail)
-
-    m = re.match(r"^(?P<label>.*?)(?P<tail>\d+(?:\.\d+)?%?)$", s)
-    if m:
-        label = _s(m.group("label")).strip()
-        tail = _s(m.group("tail")).strip()
-        return (label or s, tail)
-
-    return (s, "")
-
-
-_GRADES_SUMMARY_CACHE: dict[Path, dict] = {}
-
-
-def _find_upwards(start: Path, filename: str) -> Path | None:
-    cur = start.resolve()
-    if cur.is_file():
-        cur = cur.parent
-    for p in [cur, *cur.parents]:
-        cand = p / filename
-        if cand.exists() and cand.is_file():
-            return cand
-    return None
-
-
-def _load_grades_summary(toml_path: Path) -> dict:
-    """Best-effort load grades_summary.toml.
-
-    Search order:
-    - from current working directory upwards (for CI tmp cwd)
-    - from the input toml path upwards (for local runs)
-    """
-
-    path = _find_upwards(Path.cwd(), "grades_summary.toml") or _find_upwards(
-        toml_path, "grades_summary.toml"
-    )
-    if not path:
-        return {}
-    cached = _GRADES_SUMMARY_CACHE.get(path)
-    if cached is not None:
-        return cached
-    try:
-        data = tomllib.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        data = {}
-    if not isinstance(data, dict):
-        data = {}
-    _GRADES_SUMMARY_CACHE[path] = data
-    return data
-
-
-def _pick_grade_string(grades_summary: dict, course_code: str) -> str:
-    grades = grades_summary.get("grades") if isinstance(grades_summary, dict) else None
-    if not isinstance(grades, dict):
-        return ""
-    entry = grades.get(course_code)
-    if not isinstance(entry, dict):
-        return ""
-
-    def get_in(node: Any, keys: tuple[str, ...]) -> Any:
-        cur = node
-        for k in keys:
-            if not isinstance(cur, dict):
-                return None
-            cur = cur.get(k)
-        return cur
-
-    preferred_paths: list[tuple[str, ...]] = [
-        ("default", "default"),
-        ("default",),
-    ]
-    for p in preferred_paths:
-        cand = get_in(entry, p)
-        if isinstance(cand, dict) and _s(cand.get("grade")).strip():
-            return _s(cand.get("grade")).strip()
-
-    def dfs(node: Any) -> str:
-        if isinstance(node, dict):
-            g = _s(node.get("grade")).strip()
-            if g:
-                return g
-            for k in sorted([x for x in node.keys() if isinstance(x, str)]):
-                out = dfs(node.get(k))
-                if out:
-                    return out
-        return ""
-
-    return dfs(entry)
-
-
-def _render_grading_badges_from_grade_string(grade: str) -> list[str]:
-    grade = _s(grade).strip()
-    if not grade:
-        return []
-
-    parts = [
-        p.strip() for p in re.split(r"\s*\|\s*|(?<=[0-9%])\s*\+\s*", grade) if p.strip()
-    ]
-    if not parts:
-        return []
-
-    badges: list[str] = [
-        _render_shields_badge(
-            alt="成绩构成", label="成绩构成", message=None, color="gold"
-        )
-    ]
-    for seg in parts:
-        label, value = _split_label_value_tail(seg)
-        if not label:
-            continue
-        alt = f"{label}{value}" if value else label
-        badges.append(
-            _render_shields_badge(
-                alt=alt, label=label, message=value or "", color="wheat"
-            )
-        )
-    return badges
-
-
-def _render_basic_info_badges(
-    content: str, *, fallback_grading_badges: list[str]
-) -> list[str]:
-    text = _normalize_multiline_md(content)
-    if not text:
-        return fallback_grading_badges
-
-    kv: dict[str, str] = {}
-    for ln in text.split("\n"):
-        m = re.match(r"^\s*【(?P<k>[^】]+)】\s*[:：]\s*(?P<v>.*\S)\s*$", ln)
-        if not m:
-            continue
-        kv[m.group("k").strip()] = m.group("v").strip()
-
-    badges: list[str] = []
-
-    def ensure_blank_sep() -> None:
-        if badges and badges[-1] != "":
-            badges.append("")
-
-    credit = kv.get("学分")
-    if credit:
-        badges.append(
-            _render_shields_badge(
-                alt="学分", label="学分", message=credit, color="moccasin"
-            )
-        )
-
-    hours = kv.get("学时构成") or kv.get("学时分布")
-    if hours:
-        ensure_blank_sep()
-        badges.append(
-            _render_shields_badge(
-                alt="学时构成", label="学时构成", message=None, color="gold"
-            )
-        )
-        for seg in [p.strip() for p in hours.split("|") if p.strip()]:
-            label, value = _split_label_value_tail(seg)
-            alt = f"{label}{value}" if value else label
-            badges.append(
-                _render_shields_badge(
-                    alt=alt, label=label, message=value or "", color="wheat"
-                )
-            )
-
-    grading = kv.get("成绩构成")
-    if grading:
-        ensure_blank_sep()
-        badges.append(
-            _render_shields_badge(
-                alt="成绩构成", label="成绩构成", message=None, color="gold"
-            )
-        )
-        for seg in [p.strip() for p in grading.split("|") if p.strip()]:
-            label, value = _split_label_value_tail(seg)
-            alt = f"{label}{value}" if value else label
-            badges.append(
-                _render_shields_badge(
-                    alt=alt, label=label, message=value or "", color="wheat"
-                )
-            )
-    elif fallback_grading_badges:
-        ensure_blank_sep()
-        badges.extend(fallback_grading_badges)
-
-    while badges and badges[-1] == "":
-        badges.pop()
-    return badges
 
 
 def _iter_authors(author: Any) -> list[dict]:
@@ -500,32 +260,6 @@ def _render_section_items(items: Any) -> list[dict]:
     return out
 
 
-def _extract_basic_info_from_sections(
-    sections: list[dict], *, fallback_grading_badges: list[str]
-) -> tuple[list[str], list[dict]]:
-    """Extract badges from a '基本信息' section and remove it from sections."""
-
-    kept: list[dict] = []
-    contents: list[str] = []
-    for sec in sections:
-        title = _s(sec.get("title")).strip()
-        if title == "基本信息":
-            items = _render_section_items(sec.get("items"))
-            for it in items:
-                c = _norm_block(it.get("content"))
-                if c:
-                    contents.append(c)
-            continue
-        kept.append(sec)
-
-    if not contents:
-        return (fallback_grading_badges, kept)
-    badges = _render_basic_info_badges(
-        "\n".join(contents), fallback_grading_badges=fallback_grading_badges
-    )
-    return (badges, kept)
-
-
 def _render_sections_schema(data: dict) -> str:
     course_name = _s(data.get("course_name")).strip()
     course_code = _s(data.get("course_code")).strip()
@@ -697,7 +431,7 @@ def render_multi_project(data: dict) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def render_readme(data: dict, *, toml_path: Path) -> str:
+def render_readme(data: dict) -> str:
     repo_type = _s(data.get("repo_type")).strip().lower()
     if repo_type == "multi-project":
         return render_multi_project(data)
@@ -754,9 +488,7 @@ def main() -> int:
         if out.exists() and not args.overwrite:
             continue
         data = tomllib.loads(toml_path.read_text(encoding="utf-8"))
-        out.write_text(
-            render_readme(data, toml_path=toml_path), encoding="utf-8", newline="\n"
-        )
+        out.write_text(render_readme(data), encoding="utf-8", newline="\n")
 
     return 0
 
