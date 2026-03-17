@@ -36,12 +36,10 @@ from pathlib import Path
 WARNING_START = "<!-- RDME_TOML_AUTOGEN_WARNING_START -->"
 WARNING_END = "<!-- RDME_TOML_AUTOGEN_WARNING_END -->"
 
-_BASE_RAW = (
-    os.getenv(
-        "REPOS_MANAGEMENT_RAW_BASE",
-        "https://raw.githubusercontent.com/HIT-A/repos-management/main/scripts",
-    ).strip()
-)
+_BASE_RAW = os.getenv(
+    "REPOS_MANAGEMENT_RAW_BASE",
+    "https://raw.githubusercontent.com/HIT-A/repos-management/main/scripts",
+).strip()
 
 # ---------------------------------------------------------------------------
 # Helpers
